@@ -3,6 +3,7 @@ import {
   getStudentByEmail,
   verifyPassword,
 } from "../../../lib/db";
+import { createAdminToken } from "../../../lib/admin-token";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
@@ -19,7 +20,7 @@ export default async function handler(req, res) {
     const account = await getAdminAccount();
     const ok = cleanEmail === account.email && verifyPassword(cleanPassword, account.passwordHash);
     return res.status(200).json(ok
-      ? { ok: true, user: { role: "teacher", email: account.email } }
+      ? { ok: true, user: { role: "teacher", email: account.email, adminToken: createAdminToken(account.email) } }
       : { ok: false, message: "Wrong email or password" });
   }
 

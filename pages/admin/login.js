@@ -4,7 +4,7 @@ import { ArrowRight, KeyRound } from "lucide-react";
 import { Btn, Card, Input } from "../../components/atoms";
 import { COLORS } from "../../lib/ui";
 import { adminLogin } from "../../lib/api";
-import { setAdminSession } from "../../lib/session";
+import { setAdminSession, setUserSession } from "../../lib/session";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -16,10 +16,11 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setErr("");
     setBusy(true);
-    const ok = await adminLogin(pin);
+    const result = await adminLogin(pin);
     setBusy(false);
-    if (ok) {
+    if (result.ok) {
       setAdminSession(true);
+      setUserSession(result.user);
       router.push("/admin");
     } else {
       setErr("Wrong PIN");

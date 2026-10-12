@@ -5,11 +5,11 @@ import {
 import * as XLSX from "xlsx";
 import {
   Plus, Check, Award, BarChart3, ClipboardList, ClipboardCheck, Users, Settings as SettingsIcon, UserRound,
-  CircleDot, KeyRound, ArrowRight,
+  CircleDot, KeyRound, ArrowRight, Trash2,
 } from "lucide-react";
 import { Btn, Card, Chip, EmptyState, Header, Input, ScoreBadge } from "./atoms";
 import { COLORS, fmtDate, monthStats, exportExcel } from "../lib/ui";
-import { loadAllData, addMonth, changeAdminAccount, resetStudentPinApi, createStudentAccountApi } from "../lib/api";
+import { loadAllData, addMonth, changeAdminAccount, resetStudentPinApi, createStudentAccountApi, deleteStudentApi } from "../lib/api";
 import GradingView from "./GradingView";
 import QuizEditor from "./QuizEditor";
 import ClassRegister from "./ClassRegister";
@@ -75,7 +75,7 @@ export default function AdminDashboard({ onLogout }) {
           selStudent ? (
             <StudentProfileAdmin student={selStudent} data={data} onBack={() => setSelStudent(null)} onChanged={refresh} />
           ) : (
-            <StudentsManager data={data} onOpen={(s) => setSelStudent(s)} />
+            <StudentsManager data={data} onOpen={(s) => setSelStudent(s)} onDeleted={refresh} />
           )
         )}
 
@@ -287,25 +287,44 @@ function QuizSubmissionsList({ quiz, data, openGrade, setOpenGrade, onBack, onEd
   );
 }
 
-function StudentsManager({ data, onOpen }) {
+function StudentsManager({ data, onOpen, onDeleted }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [messageError, setMessageError] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   async function create() {
     const result = await createStudentAccountApi(name, email, password);
-    if (!result.ok) { setMessage(result.error || "Could not create student"); return; }
-    setName(""); setEmail(""); setPassword(""); setAdding(false); setMessage("Student account created");
+    if (!result.ok) { setMessageError(true); setMessage(result.error || "Could not create student"); return; }
+    setName(""); setEmail(""); setPassword(""); setAdding(false); setMessageError(false); setMessage("Student account created");
     window.location.reload();
+  }
+
+  async function removeStudent(student) {
+    setDeletingId(student.id);
+    const result = await deleteStudentApi(student.id);
+    setDeletingId(null);
+    if (!result.ok) {
+      setMessageError(true);
+      setMessage(result.error || "Could not delete student");
+      return;
+    }
+    setConfirmingDelete(null);
+    setMessageError(false);
+    setMessage(`${student.name} and linked records were deleted.`);
+    await onDeleted();
   }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between"><h2 className="text-lg font-semibold" style={{ color: COLORS.text }}>Students</h2><Btn onClick={() => setAdding((v) => !v)}><Plus size={15} /> Add student</Btn></div>
-      {adding && <Card><div className="grid gap-2 sm:grid-cols-3"><Input placeholder="Student name" value={name} onChange={(e) => setName(e.target.value)} /><Input type="email" placeholder="Student email" value={email} onChange={(e) => setEmail(e.target.value)} /><Input placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} /></div><Btn className="mt-3" onClick={create}>Create account</Btn>{message && <p className="mt-2 text-xs" style={{ color: COLORS.danger }}>{message}</p>}</Card>}
-      {message && !adding && <p className="text-xs" style={{ color: COLORS.success }}>{message}</p>}
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-lg font-semibold" style={{ color: COLORS.text }}>Students</h2><Btn onClick={() => setAdding((v) => !v)}><Plus size={15} /> Add student</Btn></div>
+      <p className="text-xs" style={{ color: COLORS.textMuted }}>Deleting a student also permanently removes their submissions, recordings, attendance, and progress.</p>
+      {adding && <Card><div className="grid gap-2 sm:grid-cols-3"><Input placeholder="Student name" value={name} onChange={(e) => setName(e.target.value)} /><Input type="email" placeholder="Student email" value={email} onChange={(e) => setEmail(e.target.value)} /><Input placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} /></div><Btn className="mt-3" onClick={create}>Create account</Btn>{message && <p className="mt-2 text-xs" style={{ color: messageError ? COLORS.danger : COLORS.success }}>{message}</p>}</Card>}
+      {message && !adding && <p className="text-xs" style={{ color: messageError ? COLORS.danger : COLORS.success }}>{message}</p>}
       {data.students.length === 0 ? (
         <EmptyState icon={Users} title="No students registered yet" hint="They'll show up here as soon as someone logs in from the “I'm a Student” screen." />
       ) : (
@@ -315,13 +334,27 @@ function StudentsManager({ data, onOpen }) {
             const graded = subs.filter((x) => x.status === "graded");
             const last = graded.sort((a, b) => b.gradedAt - a.gradedAt)[0];
             return (
-              <button key={s.id} onClick={() => onOpen(s)} className="flex items-center justify-between rounded-xl border px-4 py-3 text-left" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-                <div>
+              <div key={s.id} className="flex items-center gap-2 rounded-xl border px-3 py-2" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
+                <button onClick={() => onOpen(s)} className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-lg px-1 py-1 text-left">
+                  <div className="min-w-0">
                   <p className="font-medium" style={{ color: COLORS.text }}>{s.name}</p>
-                  <p className="text-xs" style={{ color: COLORS.textMuted }}>{s.email || "No email account"} · {subs.length} quizzes submitted</p>
-                </div>
-                {last ? <ScoreBadge score={last.totalScore} max={last.maxScore} /> : <Chip>No grades yet</Chip>}
-              </button>
+                    <p className="truncate text-xs" style={{ color: COLORS.textMuted }}>{s.email || "No email account"} · {subs.length} quizzes submitted</p>
+                  </div>
+                  {last ? <ScoreBadge score={last.totalScore} max={last.maxScore} /> : <Chip>No grades yet</Chip>}
+                </button>
+                {confirmingDelete === s.id ? (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <button onClick={() => setConfirmingDelete(null)} className="rounded-lg px-2 py-2 text-xs" style={{ color: COLORS.textMuted }}>Cancel</button>
+                    <Btn variant="danger" disabled={deletingId === s.id} onClick={() => removeStudent(s)} className="px-2.5 py-2 text-xs">
+                      <Trash2 size={14} /> {deletingId === s.id ? "Deleting…" : "Delete"}
+                    </Btn>
+                  </div>
+                ) : (
+                  <button type="button" title={`Delete ${s.name}`} aria-label={`Delete ${s.name}`} onClick={() => { setMessage(""); setConfirmingDelete(s.id); }} className="shrink-0 rounded-lg p-2 hover:bg-red-50" style={{ color: COLORS.danger }}>
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>

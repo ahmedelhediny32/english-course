@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import AdminDashboard from "../../components/AdminDashboard";
-import { getAdminSession, setAdminSession } from "../../lib/session";
+import { getAdminSession, setAdminSession, setUserSession } from "../../lib/session";
 import { COLORS } from "../../lib/ui";
 
 export default function AdminPage() {
@@ -17,7 +17,7 @@ export default function AdminPage() {
 
   return (
     <div style={{ background: COLORS.paper, minHeight: "100vh" }}>
-      <AdminDashboard onLogout={() => { setAdminSession(false); router.push("/"); }} />
+      <AdminDashboard onLogout={() => { setAdminSession(false); setUserSession(null); router.push("/"); }} />
     </div>
   );
 }

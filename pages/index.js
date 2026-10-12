@@ -4,8 +4,17 @@ import { COLORS } from "../lib/ui";
 
 export default function Home() {
   const router = useRouter();
+
+  function trackPointer(event) {
+    if (event.pointerType !== "mouse") return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty("--pointer-x", `${event.clientX - bounds.left}px`);
+    event.currentTarget.style.setProperty("--pointer-y", `${event.clientY - bounds.top}px`);
+    event.currentTarget.style.setProperty("--pointer-active", "1");
+  }
+
   return (
-    <div className="home-page" style={{ background: COLORS.paper, minHeight: "100vh" }}>
+    <div className="home-page" onPointerMove={trackPointer} onPointerLeave={(event) => event.currentTarget.style.setProperty("--pointer-active", "0")} style={{ background: COLORS.paper, minHeight: "100vh" }}>
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-6 sm:px-8">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3"><div className="brand-mark"><BookOpen size={19} color="#fff" /></div><div><p className="text-sm font-semibold" style={{ color: COLORS.text }}>Quiz Notebook</p><p className="text-xs" style={{ color: COLORS.textMuted }}>English learning workspace</p></div></div>
