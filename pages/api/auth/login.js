@@ -4,7 +4,7 @@ import {
   verifyPassword,
 } from "../../../lib/db";
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { role, email, password, name } = req.body || {};
@@ -16,7 +16,7 @@ export default function handler(req, res) {
   }
 
   if (role === "teacher") {
-    const account = getAdminAccount();
+    const account = await getAdminAccount();
     const ok = cleanEmail === account.email && verifyPassword(cleanPassword, account.passwordHash);
     return res.status(200).json(ok
       ? { ok: true, user: { role: "teacher", email: account.email } }
@@ -27,7 +27,7 @@ export default function handler(req, res) {
     return res.status(400).json({ ok: false, message: "Choose a user type" });
   }
 
-  const existing = getStudentByEmail(cleanEmail);
+  const existing = await getStudentByEmail(cleanEmail);
   if (!existing || !existing.password_hash || !verifyPassword(cleanPassword, existing.password_hash)) {
     return res.status(200).json({ ok: false, message: "Wrong email or password. Ask your teacher for your account." });
   }

@@ -14,24 +14,24 @@ import {
   listStudentMonthlyProgress,
 } from "../../lib/db";
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
       const studentId = String(req.query.studentId || "");
       if (studentId) {
         return res.status(200).json({
-          attendance: listStudentAttendance(studentId),
-          sessionProgress: listStudentSessionProgress(studentId),
-          progress: listStudentMonthlyProgress(studentId),
+          attendance: await listStudentAttendance(studentId),
+          sessionProgress: await listStudentSessionProgress(studentId),
+          progress: await listStudentMonthlyProgress(studentId),
         });
       }
       const monthId = String(req.query.monthId || "");
       if (!monthId) return res.status(400).json({ error: "monthId is required" });
       return res.status(200).json({
-        sessions: listAttendanceSessions(monthId),
-        attendance: listAttendanceRecords(monthId),
-        progress: listStudentProgress(monthId),
-        sessionProgress: listSessionProgress(monthId),
+        sessions: await listAttendanceSessions(monthId),
+        attendance: await listAttendanceRecords(monthId),
+        progress: await listStudentProgress(monthId),
+        sessionProgress: await listSessionProgress(monthId),
       });
     }
 
@@ -42,14 +42,14 @@ export default function handler(req, res) {
       const { id, monthId, sessionDate, label } = req.body;
       if (!monthId || !sessionDate) return res.status(400).json({ error: "monthId and sessionDate are required" });
       const session = id
-        ? updateAttendanceSession(id, sessionDate, label)
-        : createAttendanceSession(monthId, sessionDate, label);
+        ? await updateAttendanceSession(id, sessionDate, label)
+        : await createAttendanceSession(monthId, sessionDate, label);
       return res.status(200).json({ ok: true, session });
     }
 
     if (kind === "delete-session") {
       if (!req.body.sessionId) return res.status(400).json({ error: "sessionId is required" });
-      deleteAttendanceSession(req.body.sessionId);
+      await deleteAttendanceSession(req.body.sessionId);
       return res.status(200).json({ ok: true });
     }
 
@@ -58,21 +58,21 @@ export default function handler(req, res) {
       if (!studentId || !sessionId || !["present", "absent", "late", "excused", ""].includes(status)) {
         return res.status(400).json({ error: "studentId, sessionId, and a valid status are required" });
       }
-      setAttendanceRecord(studentId, sessionId, status);
+      await setAttendanceRecord(studentId, sessionId, status);
       return res.status(200).json({ ok: true });
     }
 
     if (kind === "student") {
       const { studentId, monthId, participationScore, homeworkScore, level, notes } = req.body;
       if (!studentId || !monthId) return res.status(400).json({ error: "studentId and monthId are required" });
-      const progress = saveStudentProgress(studentId, monthId, { participationScore, homeworkScore, level, notes });
+      const progress = await saveStudentProgress(studentId, monthId, { participationScore, homeworkScore, level, notes });
       return res.status(200).json({ ok: true, progress });
     }
 
     if (kind === "session-student") {
       const { studentId, sessionId, participationScore, homeworkScore, notes } = req.body;
       if (!studentId || !sessionId) return res.status(400).json({ error: "studentId and sessionId are required" });
-      const progress = saveSessionProgress(studentId, sessionId, { participationScore, homeworkScore, notes });
+      const progress = await saveSessionProgress(studentId, sessionId, { participationScore, homeworkScore, notes });
       return res.status(200).json({ ok: true, progress });
     }
 

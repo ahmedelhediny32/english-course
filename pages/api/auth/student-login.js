@@ -1,6 +1,6 @@
 import { getStudentByName, createStudent } from "../../../lib/db";
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const { name, pin } = req.body || {};
   const cleanName = (name || "").trim();
@@ -9,7 +9,7 @@ export default function handler(req, res) {
     return res.status(400).json({ ok: false, reason: "invalid", message: "Enter a name and a PIN with at least 4 digits" });
   }
 
-  const existing = getStudentByName(cleanName);
+  const existing = await getStudentByName(cleanName);
   if (existing) {
     if (existing.pin === cleanPin) {
       return res.status(200).json({ ok: true, student: { id: existing.id, name: existing.name } });
@@ -17,6 +17,6 @@ export default function handler(req, res) {
     return res.status(409).json({ ok: false, reason: "wrong_pin", message: "That name is already registered with a different PIN. Ask your teacher to reset it." });
   }
 
-  const created = createStudent(cleanName, cleanPin);
+  const created = await createStudent(cleanName, cleanPin);
   res.status(200).json({ ok: true, student: { id: created.id, name: created.name } });
 }
