@@ -91,7 +91,7 @@ function TakeQuiz({ quiz, student, onCancel, onSubmitted }) {
     const answerMap = {};
     for (const sec of quiz.sections || []) {
       for (const item of sec.items || []) {
-        if (sec.type === "vocab" || sec.type === "essay") {
+        if (sec.type === "vocab" || sec.type === "essay" || sec.type === "choice" || sec.type === "dialogue" || sec.type === "rearrange") {
           answerMap[item.id] = { type: sec.type, text: answers[item.id] || "" };
         } else {
           const rec = recordings[item.id];
@@ -127,6 +127,40 @@ function TakeQuiz({ quiz, student, onCancel, onSubmitted }) {
                     <p className="text-sm" style={{ color: COLORS.textMuted }}>Translate the word:</p>
                     <p dir="rtl" className="text-lg font-semibold" style={{ color: COLORS.text }}>{item.arabic}</p>
                     <Input placeholder="Type the English word" value={answers[item.id] || ""} onChange={(e) => setText(item.id, e.target.value)} />
+                  </div>
+                )}
+                {sec.type === "choice" && (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm" style={{ color: COLORS.text }}>{item.prompt}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(item.options || []).map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => setText(item.id, option)}
+                          className="rounded-lg border px-3 py-2 text-sm"
+                          style={{
+                            borderColor: answers[item.id] === option ? COLORS.success : COLORS.border,
+                            background: answers[item.id] === option ? COLORS.successSoft : COLORS.surface,
+                            color: COLORS.text,
+                          }}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {sec.type === "dialogue" && (
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-sm" style={{ color: COLORS.text }}>{item.prompt}</p>
+                    <TextArea rows={3} value={answers[item.id] || ""} onChange={(e) => setText(item.id, e.target.value)} placeholder="Write your answer here..." />
+                  </div>
+                )}
+                {sec.type === "rearrange" && (
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-sm" style={{ color: COLORS.text }}>{item.prompt}</p>
+                    <Input value={answers[item.id] || ""} onChange={(e) => setText(item.id, e.target.value)} placeholder="Type the correct sentence order" />
                   </div>
                 )}
                 {sec.type === "recording" && (

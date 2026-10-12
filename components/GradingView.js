@@ -80,6 +80,33 @@ export default function GradingView({ quiz, submission, readOnly, onSaved }) {
                       </div>
                     </div>
                   )}
+                  {sec.type === "choice" && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm" style={{ color: COLORS.textMuted }}>{item.prompt}</p>
+                      <div className="flex flex-wrap gap-2 text-sm">
+                        {(item.options || []).map((option) => (
+                          <span key={option} className="rounded-lg border px-2 py-1" style={{ borderColor: ans.text === option ? COLORS.success : COLORS.border, background: ans.text === option ? COLORS.successSoft : COLORS.paper, color: COLORS.text }}>
+                            {option}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs" style={{ color: COLORS.textMuted }}>Student answer: {ans.text || "—"} · Correct answer: {item.answer}</p>
+                    </div>
+                  )}
+                  {sec.type === "dialogue" && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm" style={{ color: COLORS.textMuted }}>{item.prompt}</p>
+                      <p className="rounded-lg p-2 text-sm" style={{ background: COLORS.paper, color: COLORS.text }}>{ans.text || "—"}</p>
+                      <p className="text-xs" style={{ color: COLORS.textMuted }}>Expected answer: {item.answer}</p>
+                    </div>
+                  )}
+                  {sec.type === "rearrange" && (
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm" style={{ color: COLORS.textMuted }}>{item.prompt}</p>
+                      <p className="rounded-lg p-2 text-sm" style={{ background: COLORS.paper, color: COLORS.text }}>{ans.text || "—"}</p>
+                      <p className="text-xs" style={{ color: COLORS.textMuted }}>Correct answer: {item.answer}</p>
+                    </div>
+                  )}
                   {(sec.type === "recording" || sec.type === "reading") && (
                     <div className="flex flex-col gap-2">
                       {sec.type === "recording" ? (

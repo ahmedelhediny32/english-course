@@ -10,6 +10,13 @@ function SectionItemsList({ section, onAdd, onRemove }) {
   const [english, setEnglish] = useState("");
   const [prompt, setPrompt] = useState("");
   const [passage, setPassage] = useState("");
+  const [choicePrompt, setChoicePrompt] = useState("");
+  const [choiceOptions, setChoiceOptions] = useState("");
+  const [choiceAnswer, setChoiceAnswer] = useState("");
+  const [dialoguePrompt, setDialoguePrompt] = useState("");
+  const [dialogueAnswer, setDialogueAnswer] = useState("");
+  const [rearrangePrompt, setRearrangePrompt] = useState("");
+  const [rearrangeAnswer, setRearrangeAnswer] = useState("");
   const [maxScore, setMaxScore] = useState(meta.defaultMax);
   const [error, setError] = useState("");
 
@@ -33,6 +40,21 @@ function SectionItemsList({ section, onAdd, onRemove }) {
       if (!prompt.trim()) { setError("Enter the question text."); return; }
       onAdd({ id: uid(), prompt: prompt.trim(), maxScore });
       setPrompt("");
+    } else if (section.type === "choice") {
+      if (!choicePrompt.trim()) { setError("Enter the MCQ question text."); return; }
+      const options = choiceOptions.split("\n").map((v) => v.trim()).filter(Boolean);
+      if (options.length < 2) { setError("Add at least 2 answer options, one per line."); return; }
+      if (!choiceAnswer.trim()) { setError("Enter the correct option."); return; }
+      onAdd({ id: uid(), prompt: choicePrompt.trim(), options, answer: choiceAnswer.trim(), maxScore });
+      setChoicePrompt(""); setChoiceOptions(""); setChoiceAnswer("");
+    } else if (section.type === "dialogue") {
+      if (!dialoguePrompt.trim() || !dialogueAnswer.trim()) { setError("Enter both the dialogue prompt and the expected answer."); return; }
+      onAdd({ id: uid(), prompt: dialoguePrompt.trim(), answer: dialogueAnswer.trim(), maxScore });
+      setDialoguePrompt(""); setDialogueAnswer("");
+    } else if (section.type === "rearrange") {
+      if (!rearrangePrompt.trim() || !rearrangeAnswer.trim()) { setError("Enter the sentence prompt and the correct order."); return; }
+      onAdd({ id: uid(), prompt: rearrangePrompt.trim(), answer: rearrangeAnswer.trim(), maxScore });
+      setRearrangePrompt(""); setRearrangeAnswer("");
     }
     setError("");
   }
@@ -46,6 +68,8 @@ function SectionItemsList({ section, onAdd, onRemove }) {
             {section.type === "recording" && <span>{item.prompt}</span>}
             {section.type === "reading" && <span className="line-clamp-1">{item.passage}</span>}
             {section.type === "essay" && <span className="line-clamp-1">{item.prompt}</span>}
+            {section.type === "choice" && <span>{item.prompt} · {item.options.join(" / ")}</span>}
+            {(section.type === "dialogue" || section.type === "rearrange") && <span>{item.prompt} → {item.answer}</span>}
           </div>
           <span className="shrink-0 text-xs" style={{ color: COLORS.textMuted }}>{item.maxScore} pts</span>
           <button onClick={() => onRemove(item.id)} className="shrink-0 rounded p-1 hover:bg-red-50" style={{ color: COLORS.danger }}><X size={14} /></button>
@@ -67,6 +91,25 @@ function SectionItemsList({ section, onAdd, onRemove }) {
         )}
         {section.type === "essay" && (
           <Input placeholder="Question text" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="max-w-md" />
+        )}
+        {section.type === "choice" && (
+          <>
+            <Input placeholder="Question text" value={choicePrompt} onChange={(e) => setChoicePrompt(e.target.value)} className="max-w-[220px]" />
+            <TextArea placeholder="Options, one per line" value={choiceOptions} onChange={(e) => setChoiceOptions(e.target.value)} rows={3} className="max-w-[220px]" />
+            <Input placeholder="Correct option" value={choiceAnswer} onChange={(e) => setChoiceAnswer(e.target.value)} className="max-w-[150px]" />
+          </>
+        )}
+        {section.type === "dialogue" && (
+          <>
+            <Input placeholder="Dialogue question / prompt" value={dialoguePrompt} onChange={(e) => setDialoguePrompt(e.target.value)} className="max-w-[220px]" />
+            <Input placeholder="Expected answer" value={dialogueAnswer} onChange={(e) => setDialogueAnswer(e.target.value)} className="max-w-[220px]" />
+          </>
+        )}
+        {section.type === "rearrange" && (
+          <>
+            <Input placeholder="Sentence to rearrange" value={rearrangePrompt} onChange={(e) => setRearrangePrompt(e.target.value)} className="max-w-[220px]" />
+            <Input placeholder="Correct order" value={rearrangeAnswer} onChange={(e) => setRearrangeAnswer(e.target.value)} className="max-w-[220px]" />
+          </>
         )}
         <div className="flex items-center gap-1">
           <label className="text-xs" style={{ color: COLORS.textMuted }}>Points</label>
