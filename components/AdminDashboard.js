@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Btn, Card, Chip, EmptyState, Header, Input, ScoreBadge } from "./atoms";
 import { COLORS, fmtDate, monthStats, exportExcel } from "../lib/ui";
-import { loadAllData, addMonth, changeAdminAccount, resetStudentPinApi, createStudentAccountApi, deleteStudentApi } from "../lib/api";
+import { loadAllData, addMonth, deleteMonthApi, changeAdminAccount, resetStudentPinApi, createStudentAccountApi, deleteStudentApi } from "../lib/api";
 import GradingView from "./GradingView";
 import QuizEditor from "./QuizEditor";
 import ClassRegister from "./ClassRegister";
@@ -160,6 +160,10 @@ function MonthsManager({ data, onOpenMonth, onAdded }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [confirmingDelete, setConfirmingDelete] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [message, setMessage] = useState("");
+  const [messageError, setMessageError] = useState(false);
 
   async function add() {
     if (!name.trim()) return;
@@ -168,12 +172,29 @@ function MonthsManager({ data, onOpenMonth, onAdded }) {
     onAdded();
   }
 
+  async function removeMonth(month) {
+    setDeletingId(month.id);
+    const result = await deleteMonthApi(month.id);
+    setDeletingId(null);
+    if (!result.ok) {
+      setMessageError(true);
+      setMessage(result.error || "Could not delete month");
+      return;
+    }
+    setConfirmingDelete(null);
+    setMessageError(false);
+    setMessage(`${month.name} and its linked data were deleted.`);
+    await onAdded();
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold" style={{ color: COLORS.text }}>Months</h2>
         <Btn onClick={() => setAdding((v) => !v)}><Plus size={15} /> Add month</Btn>
       </div>
+      <p className="text-xs" style={{ color: COLORS.textMuted }}>Deleting a month also permanently removes its quizzes, submissions, recordings, attendance, and progress.</p>
+      {message && <p className="text-xs" style={{ color: messageError ? COLORS.danger : COLORS.success }}>{message}</p>}
 
       {adding && (
         <Card>
@@ -199,13 +220,31 @@ function MonthsManager({ data, onOpenMonth, onAdded }) {
             const quizzes = data.quizzes.filter((q) => q.monthId === m.id);
             const stat = monthStats(data).find((s) => s.id === m.id);
             return (
-              <button key={m.id} onClick={() => onOpenMonth(m)} className="flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-transform hover:-translate-y-0.5" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
-                <div className="flex w-full items-center justify-between">
-                  <p className="font-semibold" style={{ color: COLORS.text }}>{m.name}</p>
-                  {stat && stat.pct !== null && <ScoreBadge score={stat.pct} max={100} hideFraction />}
+              <div key={m.id} className="flex flex-col gap-2">
+                <div className="flex items-stretch gap-2">
+                  <button onClick={() => onOpenMonth(m)} className="flex min-w-0 flex-1 flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-transform hover:-translate-y-0.5" style={{ borderColor: COLORS.border, background: COLORS.surface }}>
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <p className="truncate font-semibold" style={{ color: COLORS.text }}>{m.name}</p>
+                      {stat && stat.pct !== null && <ScoreBadge score={stat.pct} max={100} hideFraction />}
+                    </div>
+                    <p className="text-xs" style={{ color: COLORS.textMuted }}>{fmtDate(m.date)} · {quizzes.length} quizzes</p>
+                  </button>
+                  <button type="button" title={`Delete ${m.name}`} aria-label={`Delete ${m.name}`} onClick={() => { setMessage(""); setConfirmingDelete(confirmingDelete === m.id ? null : m.id); }} className="shrink-0 self-start rounded-lg border p-2 hover:bg-red-50" style={{ borderColor: COLORS.border, color: COLORS.danger }}>
+                    <Trash2 size={16} />
+                  </button>
                 </div>
-                <p className="text-xs" style={{ color: COLORS.textMuted }}>{fmtDate(m.date)} · {quizzes.length} quizzes</p>
-              </button>
+                {confirmingDelete === m.id && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3" style={{ borderColor: COLORS.dangerSoft, background: COLORS.dangerSoft }}>
+                    <p className="min-w-0 flex-1 text-xs" style={{ color: COLORS.danger }}>Delete {m.name} and all linked quizzes, submissions, recordings, attendance, and progress?</p>
+                    <div className="flex items-center gap-1.5">
+                      <button type="button" onClick={() => setConfirmingDelete(null)} className="rounded-lg px-2 py-2 text-xs" style={{ color: COLORS.textMuted }}>Cancel</button>
+                      <Btn variant="danger" disabled={deletingId === m.id} onClick={() => removeMonth(m)} className="px-2.5 py-2 text-xs">
+                        <Trash2 size={14} /> {deletingId === m.id ? "Deleting…" : "Delete"}
+                      </Btn>
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
